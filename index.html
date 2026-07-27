@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>噬梦之蛇大战轮盘</title>
+  <style>
+    :root {
+      --bg: #090611;
+      --card: rgba(29, 19, 48, 0.92);
+      --gold: #ffd770;
+      --purple: #a86cff;
+      --text: #f8f2ff;
+      --sub: #c5b9dc;
+      --line: rgba(255, 215, 112, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+        "Microsoft YaHei", Arial, sans-serif;
+      background:
+        radial-gradient(circle at 50% -10%, #3a1f61 0%, transparent 38%),
+        radial-gradient(circle at 10% 80%, #1e143d 0%, transparent 35%),
+        linear-gradient(160deg, #07040d, #10091e 55%, #07040d);
+    }
+
+    .app {
+      max-width: 680px;
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 18px 14px 36px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 8px 0 6px;
+      color: var(--gold);
+      font-size: clamp(24px, 7vw, 34px);
+      letter-spacing: 2px;
+      text-shadow: 0 0 16px rgba(255, 200, 70, 0.45);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px;
+      margin-top: 14px;
+      box-shadow: 0 8px 34px rgba(0, 0, 0, 0.28);
+    }
+
+    .stage-tag {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 999px;
+      color: #2b1900;
+      background: linear-gradient(135deg, #ffe49b, #d99c30);
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    #stageTitle {
+      margin: 10px 0 4px;
+      font-size: 21px;
+      color: #fff7d5;
+    }
+
+    #stageDesc {
+      margin: 0 0 14px;
+      min-height: 22px;
+      color: var(--sub);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: min(90vw, 420px);
+      aspect-ratio: 1;
+      margin: 4px auto 14px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 50%;
+      filter: drop-shadow(0 0 18px rgba(151, 91, 255, 0.28));
+    }
+
+    .pointer {
+      position: absolute;
+      z-index: 2;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-top: 34px solid #fff0ad;
+      filter: drop-shadow(0 2px 3px #000);
+    }
+
+    .center-dot {
+      position: absolute;
+      z-index: 2;
+      top: 50%;
+      left: 50%;
+      width: 68px;
+      height: 68px;
+      transform: translate(-50%, -50%);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border-radius: 50%;
+      border: 3px solid #ffea9a;
+      background: radial-gradient(circle, #6a3c93, #271537);
+      color: #fff5cf;
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 1.25;
+      pointer-events: none;
+      box-shadow: 0 0 14px rgba(255, 220, 110, 0.45);
+    }
+
+    .btn {
+      width: 100%;
+      border: 0;
+      padding: 15px 18px;
+      border-radius: 14px;
+      color: #2b1700;
+      background: linear-gradient(135deg, #ffe69c, #d99424);
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #8d5715, 0 9px 22px rgba(0, 0, 0, 0.35);
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #8d5715;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .result-box {
+      display: none;
+      margin-top: 13px;
+      padding: 13px;
+      border-radius: 12px;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(126, 73, 188, 0.38), rgba(45, 24, 74, 0.75));
+      border: 1px solid rgba(231, 194, 255, 0.35);
+    }
+
+    .result-box.show {
+      display: block;
+      animation: pop 0.3s ease;
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.94); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    #resultText {
+      color: #ffeeb0;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .legend {
+      display: grid;
+      gap: 7px;
+      margin-top: 15px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 32px;
+      padding: 7px 9px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.035);
+      color: #eee6fb;
+      font-size: 13px;
+    }
+
+    .legend-color {
+      flex: 0 0 13px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+    }
+
+    .legend-name {
+      flex: 1;
+      line-height: 1.35;
+    }
+
+    .legend-weight {
+      color: var(--gold);
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .history-title {
+      margin: 0 0 10px;
+      color: #fff0bd;
+      font-size: 18px;
+    }
+
+    #history {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    #history li {
+      margin-bottom: 8px;
+      padding: 10px;
+      border-left: 3px solid #b779ff;
+      border-radius: 0 10px 10px 0;
+      background: rgba(255, 255, 255, 0.045);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    #history li b {
+      color: #ffe59c;
+    }
+
+    .ending {
+      display: none;
+      text-align: center;
+    }
+
+    .ending.show {
+      display: block;
+    }
+
+    .ending h2 {
+      color: #ffdf7f;
+      margin: 0 0 10px;
+    }
+
+    .ending p {
+      color: #e7dcf6;
+      line-height: 1.8;
+    }
+
+    .restart {
+      margin-top: 15px;
+      background: linear-gradient(135deg, #d7b7ff, #8d5bc9);
+      color: white;
+      box-shadow: 0 5px 0 #4e2b76;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header>
+      <h1>噬梦之蛇大战轮盘</h1>
+      <p class="subtitle">命运已经转动，窥见你的魔界人生。</p>
+    </header>
+
+    <section class="panel" id="gamePanel">
+      <span class="stage-tag" id="stageTag">主线轮盘</span>
+      <h2 id="stageTitle"></h2>
+      <p id="stageDesc"></p>
+
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel"></canvas>
+        <div class="center-dot">命运<br />轮盘</div>
+      </div>
+
+      <button class="btn" id="spinBtn">开始抽取</button>
+
+      <div class="result-box" id="resultBox">
+        <div id="resultText"></div>
+      </div>
+
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="panel">
+      <h3 class="history-title">命运记录</h3>
+      <ul id="history">
+        <li>尚未开始抽取。</li>
+      </ul>
+    </section>
+
+    <section class="panel ending" id="endingPanel">
+      <h2>命运篇章结束</h2>
+      <p id="endingText"></p>
+      <button class="btn restart" onclick="restartGame()">重新开启命运</button>
+    </section>
+  </main>
+
+  <script>
+    const COLORS = [
+      "#9d4edd", "#6c63ff", "#3a86ff", "#00b4d8", "#2ec4b6",
+      "#65c466", "#c6d94c", "#f6bd60", "#f28482", "#e76fba",
+      "#b565f5", "#ff8c42"
+    ];
+
+    const wheels = {
+      faction: {
+        tag: "第一个轮盘",
+        title: "来自什么势力？",
+        desc: "你的起源，将决定你最初踏入魔界时的身份。",
+        options: [
+          ["噬梦之蛇", 20], ["原初魔界", 20], ["混沌死海", 19],
+          ["魔界", 20], ["音巢", 20], ["古神", 1]
+        ]
+      },
+      age: {
+        tag: "第二个轮盘",
+        title: "年龄是多少？",
+        desc: "岁月会沉淀力量，也可能积累疯狂。",
+        options: [["500", 25], ["1000", 25], ["2000", 25], ["10000", 25]]
+      },
+      power: {
+        tag: "第三个轮盘",
+        title: "登场时强度如何？",
+        desc: "你初次登场时，究竟站在力量体系的何处？",
+        options: [
+          ["神最上", 20], ["论外下", 30], ["论外中", 30],
+          ["论外上", 19], ["论外最上", 1]
+        ]
+      },
+      personality: {
+        tag: "第四个轮盘",
+        title: "为人性格如何？",
+        desc: "力量并不决定善恶，但你的选择会。",
+        options: [
+          ["丧心病狂", 25], ["无恶不作", 25],
+          ["赞名远扬", 25], ["在世圣人", 25]
+        ]
+      },
+      gender: {
+        tag: "第五个轮盘",
+        title: "性别",
+        desc: "命运将赋予你怎样的形态？",
+        options: [["男", 25], ["女", 25], ["无性别", 25], ["双性别", 25]]
+      },
+      beauty: {
+        tag: "第六个轮盘",
+        title: "颜值如何？",
+        desc: "若抽到 SSS 或 EX，将进入魅力支线。",
+        options: [
+          ["F 看了能吓死人", 9], ["E 面目可憎", 10],
+          ["D 尖嘴猴腮", 10], ["C 其貌不扬", 15],
+          ["B 眉清目秀", 15], ["A 花容月貌", 15],
+          ["S 国色天香", 10], ["SS 沉鱼落雁", 10],
+          ["SSS 倾国倾城", 5], ["EX 当世魅魔", 1]
+        ]
+      },
+      weaponCheck: {
+        tag: "第七个轮盘",
+        title: "是否有特殊武器？",
+        desc: "若为“是”，将进入武器支线。",
+        options: [["是", 50], ["否", 50]]
+      },
+      magic: {
+        tag: "第八个轮盘",
+        title: "法术造诣",
+        desc: "魔力的尽头，究竟是知源，还是溯源？",
+        options: [["法圣", 50], ["法神", 30], ["知源", 19], ["溯源", 1]]
+      },
+      martial: {
+        tag: "第九个轮盘",
+        title: "体术造诣",
+        desc: "纯粹的肉体与武艺，同样能够抵达巅峰。",
+        options: [["武圣", 50], ["武帝", 30], ["武神", 19], ["武极", 1]]
+      },
+      techCount: {
+        tag: "第十个轮盘",
+        title: "会几个技术？",
+        desc: "抽取结果决定接下来需要获得几个技术。",
+        options: [["1个", 50], ["2个", 30], ["3个", 19], ["4个", 1]]
+      },
+      warCheck: {
+        tag: "第十一个轮盘",
+        title: "是否参与魔界战争？",
+        desc: "若选择“否”，你的故事将在此处结束。",
+        options: [["是", 50], ["否", 50]]
+      },
+      warFaction: {
+        tag: "第十二个轮盘",
+        title: "战争中属于哪方势力？",
+        desc: "战火蔓延，阵营决定你的敌人与同伴。",
+        options: [["噬梦之蛇", 50], ["魔界", 50]]
+      },
+      battlefield: {
+        tag: "第十三个轮盘",
+        title: "位于哪个战场？",
+        desc: "每一片战场，都埋葬着无数传说。",
+        options: [
+          ["第一战场：林轩", 25], ["第二战场：君墨笙", 25],
+          ["第三战场：上古者", 25], ["第四战场：厌世者", 25]
+        ]
+      },
+      position: {
+        tag: "第十四个轮盘",
+        title: "战斗时位于哪里？",
+        desc: "你将以何种方式参与这场战争？",
+        options: [["边缘ob", 30], ["参加正面战场", 30], ["清理杂兵", 40]]
+      },
+      result: {
+        tag: "第十五个轮盘",
+        title: "战斗结果",
+        desc: "决定魔界战争最终走向的时刻到了。",
+        options: [["噬梦之蛇胜利", 50], ["魔界胜利", 50]]
+      },
+
+      charm: {
+        tag: "魅力支线轮盘",
+        title: "敌人对你的态度怎么样？",
+        desc: "绝世容颜，有时比力量更加危险。",
+        options: [
+          ["俯首称臣", 25], ["直接自裁", 25],
+          ["陷入爱慕", 25], ["自行离去", 25]
+        ]
+      },
+      weapon: {
+        tag: "武器支线轮盘",
+        title: "你拥有什么特殊武器？",
+        desc: "若抽中禁器，将继续进入禁器轮盘。",
+        options: [
+          ["剑类：嗜血魔剑", 20], ["枪类：天极枪", 30],
+          ["控制类：定魔锁", 30], ["防御类：祸雨心伞", 19],
+          ["禁器", 1]
+        ]
+      },
+      forbidden: {
+        tag: "禁器支线轮盘",
+        title: "你获得哪件禁器？",
+        desc: "禁器的力量，往往伴随着难以承受的代价。",
+        options: [
+          ["堕天之铭", 25], ["永炼魔匣", 25],
+          ["奥尔尼思神杖", 25], ["定魔之击", 25]
+        ]
+      },
+      tech: {
+        tag: "技术支线轮盘",
+        title: "你拥有什么技术？",
+        desc: "技术不会重复，直到抽够目标数量。",
+        options: [
+          ["泛用", 10], ["指向改", 10], ["永续", 10],
+          ["生命管理", 10], ["变数弄", 10], ["变数固", 10],
+          ["浮空即死", 10], ["下落即死", 15],
+          ["凶恶检测", 9], ["死界", 5], ["直死", 1]
+        ]
+      }
+    };
+
+    const mainOrder = [
+      "faction", "age", "power", "personality", "gender",
+      "beauty", "weaponCheck", "magic", "martial",
+      "techCount", "warCheck", "warFaction",
+      "battlefield", "position", "result"
+    ];
+
+    let currentKey = "faction";
+    let historyData = [];
+    let spinning = false;
+    let rotation = 0;
+    let techNeed = 0;
+    let techGot = 0;
+    let usedTechs = [];
+
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const spinBtn = document.getElementById("spinBtn");
+    const stageTag = document.getElementById("stageTag");
+    const stageTitle = document.getElementById("stageTitle");
+    const stageDesc = document.getElementById("stageDesc");
+    const resultBox = document.getElementById("resultBox");
+    const resultText = document.getElementById("resultText");
+    const legend = document.getElementById("legend");
+    const historyList = document.getElementById("history");
+    const endingPanel = document.getElementById("endingPanel");
+    const endingText = document.getElementById("endingText");
+
+    function resizeCanvas() {
+      const size = Math.min(window.innerWidth * 0.9, 420);
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      canvas.style.width = size + "px";
+      canvas.style.height = size + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawWheel();
+    }
+
+    function getAvailableOptions() {
+      const data = wheels[currentKey];
+      if (currentKey !== "tech") return data.options;
+
+      return data.options.filter(item => !usedTechs.includes(item[0]));
+    }
+
+    function drawWheel() {
+      if (!wheels[currentKey]) return;
+
+      const size = canvas.clientWidth || 320;
+      const center = size / 2;
+      const radius = center - 8;
+      const options = getAvailableOptions();
+      const total = options.reduce((sum, item) => sum + item[1], 0);
+
+      ctx.clearRect(0, 0, size, size);
+
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate(rotation);
+
+      let start = -Math.PI / 2;
+
+      options.forEach((item, index) => {
+        const angle = (item[1] / total) * Math.PI * 2;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, start, start + angle);
+        ctx.closePath();
+        ctx.fillStyle = COLORS[index % COLORS.length];
+        ctx.fill();
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.58)";
+        ctx.stroke();
+
+        if (item[1] >= 9) {
+          const mid = start + angle / 2;
+          const textRadius = radius * 0.67;
+          const x = Math.cos(mid) * textRadius;
+          const y = Math.sin(mid) * textRadius;
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(mid + Math.PI / 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.textAlign = "center";
+          ctx.font = "bold 12px Arial";
+          ctx.shadowColor = "#000";
+          ctx.shadowBlur = 3;
+          ctx.fillText(item[1] + "%", 0, 4);
+          ctx.restore();
+        }
+
+        start += angle;
+      });
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = "#ffe48a";
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function renderStage() {
+      const data = wheels[currentKey];
+      const options = getAvailableOptions();
+
+      stageTag.textContent = data.tag;
+      stageTitle.textContent = data.title;
+
+      if (currentKey === "tech") {
+        stageDesc.textContent =
+          `正在抽取第 ${techGot + 1} / ${techNeed} 个技术。已获得：` +
+          (usedTechs.length ? usedTechs.join("、") : "暂无");
+      } else {
+        stageDesc.textContent = data.desc;
+      }
+
+      resultBox.classList.remove("show");
+      spinBtn.disabled = false;
+      spinBtn.textContent = currentKey === "tech"
+        ? `抽取第 ${techGot + 1} 个技术`
+        : "转动命运轮盘";
+
+      legend.innerHTML = "";
+      options.forEach((item, index) => {
+        const div = document.createElement("div");
+        div.className = "legend-item";
+        div.innerHTML = `
+          <span class="legend-color" style="background:${COLORS[index % COLORS.length]}"></span>
+          <span class="legend-name">${item[0]}</span>
+          <span class="legend-weight">${item[1]}%</span>
+        `;
+        legend.appendChild(div);
+      });
+
+      rotation = 0;
+      drawWheel();
+    }
+
+    function weightedPick(options) {
+      const total = options.reduce((sum, item) => sum + item[1], 0);
+      let random = Math.random() * total;
+
+      for (let i = 0; i < options.length; i++) {
+        random -= options[i][1];
+        if (random < 0) {
+          return { name: options[i][0], weight: options[i][1], index: i };
+        }
+      }
+
+      const last = options[options.length - 1];
+      return { name: last[0], weight: last[1], index: options.length - 1 };
+    }
+
+    function spinWheel() {
+      if (spinning) return;
+
+      spinning = true;
+      spinBtn.disabled = true;
+      resultBox.classList.remove("show");
+
+      const options = getAvailableOptions();
+      const picked = weightedPick(options);
+      const total = options.reduce((sum, item) => sum + item[1], 0);
+
+      let start = -Math.PI / 2;
+      let pickedMid = 0;
+
+      options.forEach((item, index) => {
+        const angle = item[1] / total * Math.PI * 2;
+        if (index === picked.index) {
+          pickedMid = start + angle / 2;
+        }
+        start += angle;
+      });
+
+      const desired = (-Math.PI / 2 - pickedMid + Math.PI * 2) % (Math.PI * 2);
+      const startRotation = rotation;
+      const targetRotation = startRotation + Math.PI * 2 * 6 + desired;
+      const duration = 4200;
+      const startTime = performance.now();
+
+      function animate(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 4);
+
+        rotation = startRotation + (targetRotation - startRotation) * eased;
+        drawWheel();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          rotation = desired;
+          drawWheel();
+          spinning = false;
+          showResult(picked);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function showResult(picked) {
+      const data = wheels[currentKey];
+      resultText.innerHTML = `抽中结果：<strong>${picked.name}</strong>（权重 ${picked.weight}%）`;
+      resultBox.classList.add("show");
+
+      addHistory(data.title, picked.name);
+      spinBtn.textContent = "进入下一段命运";
+      spinBtn.disabled = false;
+      spinBtn.onclick = () => nextStep(picked.name);
+    }
+
+    function addHistory(title, result) {
+      historyData.push({ title, result });
+      historyList.innerHTML = "";
+
+      historyData.forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML = `<b>${item.title}</b><br>${item.result}`;
+        historyList.appendChild(li);
+      });
+    }
+
+    function goTo(key) {
+      currentKey = key;
+      spinBtn.onclick = spinWheel;
+      renderStage();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function nextMain(current) {
+      const index = mainOrder.indexOf(current);
+      if (index < 0 || index >= mainOrder.length - 1) {
+        finishGame("你的命运已经被完整记录。无论结局如何，这段魔界传说都将被后人传颂。");
+        return;
+      }
+      goTo(mainOrder[index + 1]);
+    }
+
+    function nextStep(result) {
+      switch (currentKey) {
+        case "beauty":
+          if (result.startsWith("SSS") || result.startsWith("EX")) {
+            goTo("charm");
+          } else {
+            goTo("weaponCheck");
+          }
+          break;
+
+        case "charm":
+          goTo("weaponCheck");
+          break;
+
+        case "weaponCheck":
+          if (result === "是") goTo("weapon");
+          else goTo("magic");
+          break;
+
+        case "weapon":
+          if (result === "禁器") goTo("forbidden");
+          else goTo("magic");
+          break;
+
+        case "forbidden":
+          goTo("magic");
+          break;
+
+        case "techCount":
+          techNeed = parseInt(result, 10);
+          techGot = 0;
+          usedTechs = [];
+          goTo("tech");
+          break;
+
+        case "tech":
+          usedTechs.push(result);
+          techGot++;
+
+          if (techGot >= techNeed) {
+            goTo("warCheck");
+          } else {
+            goTo("tech");
+          }
+          break;
+
+        case "warCheck":
+          if (result === "否") {
+            finishGame("你没有参与魔界战争。你远离战火，在属于自己的命运道路上继续前行。");
+          } else {
+            goTo("warFaction");
+          }
+          break;
+
+        case "result":
+          finishGame(`魔界战争结束，最终结果为：${result}。你的名字，也成为了这场战争历史的一部分。`);
+          break;
+
+        default:
+          nextMain(currentKey);
+          break;
+      }
+    }
+
+    function finishGame(text) {
+      document.getElementById("gamePanel").style.display = "none";
+      endingText.textContent = text;
+      endingPanel.classList.add("show");
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+
+    function restartGame() {
+      currentKey = "faction";
+      historyData = [];
+      spinning = false;
+      rotation = 0;
+      techNeed = 0;
+      techGot = 0;
+      usedTechs = [];
+
+      endingPanel.classList.remove("show");
+      document.getElementById("gamePanel").style.display = "block";
+      spinBtn.onclick = spinWheel;
+      renderStage();
+
+      historyList.innerHTML = "<li>尚未开始抽取。</li>";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    spinBtn.onclick = spinWheel;
+    resizeCanvas();
+    renderStage();
+  </script>
+</body>
+</html>
